@@ -353,7 +353,7 @@ static void PLA(CPU *cpu, addr_mode mode) {
 	cpu->a = stack_pull(cpu);
 	++cpu->cycles;
 	if (!cpu->a) cpu->p |= Z;
-	if (cpu->a & (1 << 7)) cpu->p |= N;
+	if (cpu->a < 0) cpu->p |= N;
 }
 
 static void PLP(CPU *cpu, addr_mode mode) {
@@ -467,7 +467,7 @@ static void TAX(CPU *cpu, addr_mode mode) {
 	load(cpu, mode);
 	cpu->x = cpu->a;
 	if (!cpu->x) cpu->p |= Z;
-	if (cpu->x & (1 << 7)) cpu->p |= N;
+	if (cpu->x < 0) cpu->p |= N;
 }
 
 static void TAY(CPU *cpu, addr_mode mode) {
@@ -476,7 +476,7 @@ static void TAY(CPU *cpu, addr_mode mode) {
 	load(cpu, mode);
 	cpu->y = cpu->a;
 	if (!cpu->y) cpu->p |= Z;
-	if (cpu->y & (1 << 7)) cpu->p |= N;
+	if (cpu->y < 0) cpu->p |= N;
 }
 
 static void TSX(CPU *cpu, addr_mode mode) {
@@ -485,7 +485,7 @@ static void TSX(CPU *cpu, addr_mode mode) {
 	load(cpu, mode);
 	cpu->x = cpu->s;
 	if (!cpu->x) cpu->p |= Z;
-	if (cpu->x & (1 << 7)) cpu->p |= N;
+	if (cpu->x < 0) cpu->p |= N;
 }
 
 static void TXA(CPU *cpu, addr_mode mode) {
@@ -494,7 +494,7 @@ static void TXA(CPU *cpu, addr_mode mode) {
 	load(cpu, mode);
 	cpu->a = cpu->x;
 	if (!cpu->a) cpu->p |= Z;
-	if (cpu->a & (1 << 7)) cpu->p |= N;
+	if (cpu->a < 0) cpu->p |= N;
 }
 
 static void TXS(CPU *cpu, addr_mode mode) {
@@ -508,7 +508,7 @@ static void TYA(CPU *cpu, addr_mode mode) {
 	load(cpu, mode);
 	cpu->a = cpu->y;
 	if (!cpu->a) cpu->p |= Z;
-	if (cpu->a & (1 << 7)) cpu->p |= N;
+	if (cpu->a < 0) cpu->p |= N;
 }
 
 const opcode_t OPCODE_TABLE[256] = {
