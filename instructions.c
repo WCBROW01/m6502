@@ -12,54 +12,21 @@ static void XXX(CPU *cpu, addr_mode mode) {
 }
 
 static inline void add(CPU *cpu, uint8_t op) {
-	cpu->p &= ~Z & ~N;
+	uint8_t carry = cpu->p & C;
+	cpu->p &= ~C & ~Z & ~N & ~V;
 
-	// check whether the low nibble needs adjustment beforehand
-	uint8_t hcl = cpu->p & D && (cpu->a & 0x0F) + (op & 0x0F) + (!!(cpu->p & C)) > 0x09; 
-	asm inline (
-		"	movzx %[p], %%ax\n"
-		"	bt $0, %%ax\n"
-		"# clear the carry flag on emulated cpu after setting on x86\n"
-		"	jnc adc_no_carry%=\n"
-		"	and 0xfe, %[p]\n"
-		"	stc\n"
-		"adc_no_carry%=:\n"
-		"	adc %[op], %[a]\n"
-		"	jc adc_carry%=\n"
-		"	jz adc_zero%=\n"
-		"adc_carry_ret%=:\n"
-		"adc_zero_ret%=:\n"
-		"	bt $3, %%ax\n"
-		"	jnc adc_no_hch%=\n"
-		"	test %[hcl], %[hcl]\n"
-		"	jz adc_no_hcl%=\n"
-		"	add $0x06, %[a]\n"
-		"adc_no_hcl%=:\n"
-		"	cmp $0x9F, %[a]\n"
-		"	jng adc_no_hch%=\n"
-		"	add $0x60, %[a]\n"
-		"	bts $0, %%ax\n"
-		"adc_no_hch%=:\n"
-		"	jo adc_overflow%=\n"
-		"	jng adc_sign%=\n"
-		"	jmp adc_done%=\n"
-		"adc_carry%=:\n"
-		"	bts $0, %%ax\n"
-		"	jnz adc_carry_ret%=\n"
-		"adc_zero%=:\n"
-		"	bts $1, %%ax\n"
-		"	jmp adc_zero_ret%=\n"
-		"adc_overflow%=:\n"
-		"	bts $6, %%ax\n"
-		"	jns adc_done%=\n"
-		"adc_sign%=:\n"
-		"	bts $7, %%ax\n"
-		"adc_done%=:\n"
-		"	mov %%al, %[p]"
-		: [a] "+rm" (cpu->a), [p] "+rm" (cpu->p)
-		: [op] "rm" (op), [hcl] "r" (hcl)
-		: "ax", "cc"
-	);
+	uint8_t result = cpu->a + op + carry;
+	if (!result) cpu->p |= Z;
+	// packed BCD :)
+	if (cpu->p & D) {
+		if ((result & 0x0f) > 0x09) result += 0x06;
+		if (result > 0x9f) result += 0x60;
+	}
+
+	if (result < (uint8_t) cpu->a) cpu->p |= C;
+	if (~(cpu->a ^ op) & (cpu->a ^ result) & 0x80) cpu->p |= V;
+	cpu->a = result;
+	if (cpu->a < 0) cpu->p |= N;
 }
 
 static void ADC(CPU *cpu, addr_mode mode) {
