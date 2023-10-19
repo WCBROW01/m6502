@@ -375,40 +375,14 @@ static void ROL(CPU *cpu, addr_mode mode) {
 		++cpu->cycles;
 	}
 
-	asm inline (
-		"	movzx %[p], %%ax\n"
-		"	bt $0, %%ax\n"
-		"# clear the carry flag on emulated cpu after setting on x86\n"
-		"	jnc rol_no_carry%=\n"
-		"	and 0xfe, %[p]\n"
-		"	stc\n"
-		"rol_no_carry%=:\n"
-		"	rcl $1, %[op]\n"
-		"	jc rol_carry%=\n"
-		"	jz rol_zero%=\n"
-		"rol_carry_ret%=:\n"
-		"	jng rol_sign%=\n"
-		"	jmp rol_done%=\n"
-		"rol_carry%=:\n"
-		"	bts $0, %%ax\n"
-		"	jnz rol_carry_ret%=\n"
-		"rol_zero%=:\n"
-		"	bts $1, %%ax\n"
-		"	jmp rol_done%=\n"
-		"rol_sign%=:\n"
-		"	bts $7, %%ax\n"
-		"rol_done%=:\n"
-		"	mov %%al, %[p]"
-		: [op] "+rm" (op), [p] "+rm" (cpu->p)
-		: // no input operands
-		: "ax", "cc"
-	);
+	// shift and insert carry after calculating new carry
+	uint8_t new_carry = !!(op & 0x80);
+	op = (op << 1) | (cpu->p & C);
+	cpu->p &= ~C;
+	cpu->p |= new_carry;
 
-	if (mode == addr_acc) {
-		cpu->a = op;
-	} else {
-		store(cpu, addr, op);
-	}
+	if (mode == addr_acc) cpu->a = op;
+	else store(cpu, addr, op);
 
 	++cpu->cycles;
 }
@@ -426,40 +400,14 @@ static void ROR(CPU *cpu, addr_mode mode) {
 		++cpu->cycles;
 	}
 
-	asm inline (
-		"	movzx %[p], %%ax\n"
-		"	bt $0, %%ax\n"
-		"# clear the carry flag on emulated cpu after setting on x86\n"
-		"	jnc ror_no_carry%=\n"
-		"	and 0xfe, %[p]\n"
-		"	stc\n"
-		"ror_no_carry%=:\n"
-		"	rcr $1, %[op]\n"
-		"	jc ror_carry%=\n"
-		"	jz ror_zero%=\n"
-		"ror_carry_ret%=:\n"
-		"	jng ror_sign%=\n"
-		"	jmp ror_done%=\n"
-		"ror_carry%=:\n"
-		"	bts $0, %%ax\n"
-		"	jnz ror_carry_ret%=\n"
-		"ror_zero%=:\n"
-		"	bts $1, %%ax\n"
-		"	jmp ror_done%=\n"
-		"ror_sign%=:\n"
-		"	bts $7, %%ax\n"
-		"ror_done%=:\n"
-		"	mov %%al, %[p]"
-		: [op] "+rm" (op), [p] "+rm" (cpu->p)
-		: // no input operands
-		: "ax", "cc"
-	);
+	// shift and insert carry after calculating new carry
+	uint8_t new_carry = op & 1;
+	op = (op >> 1) | ((cpu->p & C) << 7);
+	cpu->p &= ~C;
+	cpu->p |= new_carry;
 
-	if (mode == addr_acc) {
-		cpu->a = op;
-	} else {
-		store(cpu, addr, op);
-	}
+	if (mode == addr_acc) cpu->a = op;
+	else store(cpu, addr, op);
 	
 	++cpu->cycles;
 }
