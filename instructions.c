@@ -203,7 +203,7 @@ static void CPY(CPU *cpu, addr_mode mode) {
 	compare(cpu, mode, cpu->y);
 }
 
-static void decrement(CPU *cpu, uint8_t *value) {
+static void decrement(CPU *cpu, int8_t *value) {
 	cpu->p &= ~Z & ~N;
 	--*value;
 	if (!*value) cpu->p |= Z;
@@ -211,8 +211,8 @@ static void decrement(CPU *cpu, uint8_t *value) {
 }
 
 static void DEC(CPU *cpu, addr_mode mode) {
-	uint8_t addr = mode(cpu);
-	uint8_t op = cpu->read(cpu->context, addr);
+	uint16_t addr = mode(cpu);
+	int8_t op = cpu->read(cpu->context, addr);
 	++cpu->cycles;
 
 	decrement(cpu, &op);
@@ -220,12 +220,12 @@ static void DEC(CPU *cpu, addr_mode mode) {
 }
 
 static void DEX(CPU *cpu, addr_mode mode) {
-	load(cpu, mode);
 	decrement(cpu, &cpu->x);
+	++cpu->cycles;
 }
 static void DEY(CPU *cpu, addr_mode mode) {
 	load(cpu, mode);
-	decrement(cpu, &cpu->y);
+	++cpu->cycles;
 }
 
 static void EOR(CPU *cpu, addr_mode mode) {
@@ -235,7 +235,7 @@ static void EOR(CPU *cpu, addr_mode mode) {
 	if (cpu->a < 0) cpu->p |= N;
 }
 
-static void increment(CPU *cpu, uint8_t *value) {
+static void increment(CPU *cpu, int8_t *value) {
 	cpu->p &= ~Z & ~N;
 	++*value;
 	if (!*value) cpu->p |= Z;
@@ -243,8 +243,8 @@ static void increment(CPU *cpu, uint8_t *value) {
 }
 
 static void INC(CPU *cpu, addr_mode mode) {
-	uint8_t addr = mode(cpu);
-	uint8_t op = cpu->read(cpu->context, addr);
+	uint16_t addr = mode(cpu);
+	int8_t op = cpu->read(cpu->context, addr);
 	++cpu->cycles;
 
 	increment(cpu, &op);
@@ -252,13 +252,13 @@ static void INC(CPU *cpu, addr_mode mode) {
 }
 
 static void INX(CPU *cpu, addr_mode mode) {
-	load(cpu, mode);
 	increment(cpu, &cpu->x);
+	++cpu->cycles;
 }
 
 static void INY(CPU *cpu, addr_mode mode) {
-	load(cpu, mode);
 	increment(cpu, &cpu->y);
+	++cpu->cycles;
 }
 
 static void JMP(CPU *cpu, addr_mode mode) {
