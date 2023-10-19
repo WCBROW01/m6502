@@ -86,28 +86,10 @@ static void ASL(CPU *cpu, addr_mode mode) {
 		++cpu->cycles;
 	}
 
-	asm inline (
-		"	movzx %[p], %%ax\n"
-		"	sal $1, %[op]\n"
-		"	jc asl_carry%=\n"
-		"	jz asl_zero%=\n"
-		"asl_carry_ret%=:\n"
-		"	jng asl_sign%=\n"
-		"	jmp asl_done%=\n"
-		"asl_carry%=:\n"
-		"	bts $0, %%ax\n"
-		"	jz asl_carry_ret%=\n"
-		"asl_zero%=:\n"
-		"	bts $1, %%ax\n"
-		"	jmp asl_done%=\n"
-		"asl_sign%=:\n"
-		"	bts $7, %%ax\n"
-		"asl_done%=:\n"
-		"	mov %%al, %[p]"
-		: [op] "+rm" (op), [p] "+rm" (cpu->p)
-		: // no input operands
-		: "ax", "cc"
-	);
+	if (op & 0x80) cpu->p |= C;
+	op <<= 1;
+	if (!op) cpu->p |= Z;
+	if (op & 0x80) cpu->p |= N;
 
 	if (mode == addr_acc) {
 		cpu->a = op;
@@ -329,28 +311,10 @@ static void LSR(CPU *cpu, addr_mode mode) {
 		++cpu->cycles;
 	}
 
-	asm inline (
-		"	movzx %[p], %%ax\n"
-		"	shr $1, %[op]\n"
-		"	jc lsr_carry%=\n"
-		"	jz lsr_zero%=\n"
-		"lsr_carry_ret%=:\n"
-		"	jng lsr_sign%=\n"
-		"	jmp lsr_done%=\n"
-		"lsr_carry%=:\n"
-		"	bts $0, %%ax\n"
-		"	jnz lsr_carry_ret%=\n"
-		"lsr_zero%=:\n"
-		"	bts $1, %%ax\n"
-		"	jmp lsr_done%=\n"
-		"lsr_sign%=:\n"
-		"	bts $7, %%ax\n"
-		"lsr_done%=:\n"
-		"	mov %%al, %[p]"
-		: [op] "+rm" (op), [p] "+rm" (cpu->p)
-		: // no input operands
-		: "ax", "cc"
-	);
+	if (op & 0x80) cpu->p |= C;
+	op >>= 1;
+	if (!op) cpu->p |= Z;
+	if (op & 0x80) cpu->p |= N;
 
 	if (mode == addr_acc) {
 		cpu->a = op;
