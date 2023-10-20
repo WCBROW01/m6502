@@ -34,6 +34,7 @@ int main(void) {
 		.read = &ram_read,
 		.write = &ram_write
 	};
+	CPU_power(&cpu);
 	CPU_reset(&cpu);
 
 	while (1) {

@@ -116,21 +116,46 @@ void interrupt(CPU *cpu) {
 	stack_push(cpu, cpu->pc >> 8);
 	stack_push(cpu, cpu->pc);
 	stack_push(cpu, cpu->p);
+	cpu->p |= I;
+}
+
+static void irq(CPU *cpu) {
+	interrupt(cpu);
+	cpu->addr = 0xFFFE;
+	cpu->pc = cpu->read(cpu->context, cpu->addr);
+	cpu->pc |= cpu->read(cpu->context, ++cpu->addr) << 8;
+	cpu->cycles += 4;
+}
+
+static void nmi(CPU *cpu) {
+	cpu->nmi = 1;
+	interrupt(cpu);
+	cpu->addr = 0xFFFA;
+	cpu->pc = cpu->read(cpu->context, cpu->addr);
+	cpu->pc |= cpu->read(cpu->context, ++cpu->addr) << 8;
+	cpu->cycles += 4;
+}
+
+void CPU_power(CPU *cpu) {
+	cpu->irq = 1;
+	cpu->nmi = 1;
 }
 
 void CPU_reset(CPU *cpu) {
-	cpu->p |= I;
 	cpu->pc = 0x00FF;
 	cpu->s = 0x00;
 	interrupt(cpu);
 	cpu->addr = 0xFFFC;
 	cpu->pc = cpu->read(cpu->context, cpu->addr);
 	cpu->pc |= cpu->read(cpu->context, ++cpu->addr) << 8;
+	cpu->cycles += 2;
 }
 
 size_t CPU_run(CPU *cpu, size_t cycles) {
 	cpu->cycles = 0;
 	while (cpu->cycles < cycles) {
+		if (!cpu->nmi) nmi(cpu);
+		if (!cpu->irq && !(cpu->p & I)) irq(cpu);
 		uint8_t opcode = load(cpu, addr_imm);
 		opcode_t inst = OPCODE_TABLE[opcode];
 		inst.func(cpu, inst.mode);

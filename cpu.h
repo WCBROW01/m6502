@@ -24,14 +24,18 @@ typedef struct CPU {
 	uint8_t s; // stack pointer
 	int8_t a, x, y; // registers
 	uint8_t p; // status flag
+	uint8_t irq; // interrupt line
+	uint8_t nmi; // nmi line
 } CPU;
 
+void CPU_power(CPU *cpu);
 void CPU_reset(CPU *cpu);
 size_t CPU_run(CPU *cpu, size_t cycles);
 
 void stack_push(CPU *cpu, uint8_t data);
 uint8_t stack_pull(CPU *cpu);
 void interrupt(CPU *cpu);
+
 
 // Function pointer type for address mode functions
 typedef uint16_t (*addr_mode)(CPU *);

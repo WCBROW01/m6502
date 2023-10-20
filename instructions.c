@@ -116,9 +116,12 @@ static void BRK(CPU *cpu, addr_mode mode) {
 	cpu->p |= B;
 
 	++cpu->cycles;
+	++cpu->pc;
 	interrupt(cpu);
-	cpu->pc = 0xFFFE;
-	cpu->pc = addr_abs(cpu);
+	cpu->addr = 0xFFFE;
+	cpu->pc = cpu->read(cpu->context, cpu->addr);
+	cpu->pc |= cpu->read(cpu->context, ++cpu->addr) << 8;
+	cpu->cycles += 2;
 }
 
 static void BVC(CPU *cpu, addr_mode mode) {
