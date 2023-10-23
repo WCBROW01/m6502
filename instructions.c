@@ -116,7 +116,6 @@ static void BRK(CPU *cpu, addr_mode mode) {
 	cpu->p |= B;
 
 	++cpu->cycles;
-	++cpu->pc;
 	interrupt(cpu);
 	cpu->addr = 0xFFFE;
 	cpu->pc = cpu->read(cpu->context, cpu->addr);
@@ -194,7 +193,7 @@ static void DEX(CPU *cpu, addr_mode mode) {
 	++cpu->cycles;
 }
 static void DEY(CPU *cpu, addr_mode mode) {
-	load(cpu, mode);
+	decrement(cpu, &cpu->y);
 	++cpu->cycles;
 }
 
@@ -238,7 +237,6 @@ static void JMP(CPU *cpu, addr_mode mode) {
 static void JSR(CPU *cpu, addr_mode mode) {
 	uint16_t addr = mode(cpu);
 	uint16_t ret = cpu->pc - 1;
-	++cpu->cycles;
 	stack_push(cpu, ret >> 8);
 	stack_push(cpu, ret & 0xFF);
 	cpu->pc = addr;
@@ -307,19 +305,18 @@ static void ORA(CPU *cpu, addr_mode mode) {
 }
 
 static void PHA(CPU *cpu, addr_mode mode) {
-	load(cpu, mode);
+	++cpu->cycles;
 	stack_push(cpu, cpu->a);
 }
 
 static void PHP(CPU *cpu, addr_mode mode) {
-	load(cpu, mode);
+	++cpu->cycles;
 	stack_push(cpu, cpu->p);
 }
 
 static void PLA(CPU *cpu, addr_mode mode) {
 	cpu->p &= ~Z & ~N;
 
-	load(cpu, mode);
 	cpu->a = stack_pull(cpu);
 	++cpu->cycles;
 	if (!cpu->a) cpu->p |= Z;
@@ -327,9 +324,8 @@ static void PLA(CPU *cpu, addr_mode mode) {
 }
 
 static void PLP(CPU *cpu, addr_mode mode) {
-	load(cpu, mode);
-	cpu->p = stack_pull(cpu);
 	++cpu->cycles;
+	cpu->p = stack_pull(cpu);
 }
 
 static void ROL(CPU *cpu, addr_mode mode) {
@@ -383,18 +379,18 @@ static void ROR(CPU *cpu, addr_mode mode) {
 }
 
 static void RTI(CPU *cpu, addr_mode mode) {
-	load(cpu, mode);
 	cpu->p = stack_pull(cpu);
-	++cpu->cycles;
 	cpu->pc = stack_pull(cpu);
 	cpu->pc |= stack_pull(cpu) << 8;
+	--cpu->cycles; // loading the instruction is an extra cpu cycle
+	++cpu->pc;
 }
 
 static void RTS(CPU *cpu, addr_mode mode) {
-	load(cpu, mode);
-	cpu->cycles += 2;
+	++cpu->cycles;
 	cpu->pc = stack_pull(cpu);
 	cpu->pc |= stack_pull(cpu) << 8;
+	++cpu->pc;
 }
 
 static void SBC(CPU *cpu, addr_mode mode) {
@@ -402,17 +398,17 @@ static void SBC(CPU *cpu, addr_mode mode) {
 }
 
 static void SEC(CPU *cpu, addr_mode mode) {
-	load(cpu, mode);
+	++cpu->cycles;
 	cpu->p |= C;
 }
 
 static void SED(CPU *cpu, addr_mode mode) {
-	load(cpu, mode);
+	++cpu->cycles;
 	cpu->p |= D;
 }
 
 static void SEI(CPU *cpu, addr_mode mode) {
-	load(cpu, mode);
+	++cpu->cycles;
 	cpu->p |= I;
 }
 
@@ -434,7 +430,7 @@ static void STY(CPU *cpu, addr_mode mode) {
 static void TAX(CPU *cpu, addr_mode mode) {
 	cpu->p &= ~Z & ~N;
 
-	load(cpu, mode);
+	++cpu->cycles;
 	cpu->x = cpu->a;
 	if (!cpu->x) cpu->p |= Z;
 	if (cpu->x < 0) cpu->p |= N;
@@ -443,7 +439,7 @@ static void TAX(CPU *cpu, addr_mode mode) {
 static void TAY(CPU *cpu, addr_mode mode) {
 	cpu->p &= ~Z & ~N;
 
-	load(cpu, mode);
+	++cpu->cycles;
 	cpu->y = cpu->a;
 	if (!cpu->y) cpu->p |= Z;
 	if (cpu->y < 0) cpu->p |= N;
@@ -452,7 +448,7 @@ static void TAY(CPU *cpu, addr_mode mode) {
 static void TSX(CPU *cpu, addr_mode mode) {
 	cpu->p &= ~Z & ~N;
 
-	load(cpu, mode);
+	++cpu->cycles;
 	cpu->x = cpu->s;
 	if (!cpu->x) cpu->p |= Z;
 	if (cpu->x < 0) cpu->p |= N;
@@ -461,21 +457,21 @@ static void TSX(CPU *cpu, addr_mode mode) {
 static void TXA(CPU *cpu, addr_mode mode) {
 	cpu->p &= ~Z & ~N;
 
-	load(cpu, mode);
+	++cpu->cycles;
 	cpu->a = cpu->x;
 	if (!cpu->a) cpu->p |= Z;
 	if (cpu->a < 0) cpu->p |= N;
 }
 
 static void TXS(CPU *cpu, addr_mode mode) {
-	load(cpu, mode);
+	++cpu->cycles;
 	cpu->s = cpu->x;
 }
 
 static void TYA(CPU *cpu, addr_mode mode) {
 	cpu->p &= ~Z & ~N;
 
-	load(cpu, mode);
+	++cpu->cycles;
 	cpu->a = cpu->y;
 	if (!cpu->a) cpu->p |= Z;
 	if (cpu->a < 0) cpu->p |= N;
